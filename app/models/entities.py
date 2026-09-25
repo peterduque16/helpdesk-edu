@@ -1,19 +1,21 @@
 from dataclasses import dataclass, field
-from typing import Tuple
-from app.domain.errors import ValidationError
 
 @dataclass
 class Ticket:
-    _tags: list[str] = field(default_factory=list, init=False, repr=False)
+    id: str
+    requester_id: str
+    assigned_id: str = None
+    _tags: tuple = field(default_factory=tuple, init=False, repr=False)
 
     @property
-    def tags(self) -> Tuple[str, ...]:
-        return tuple(self._tags)
+    def tags(self):
+        return self._tags
 
-    def add_tag(self, tag: str) -> None:
-        normalized = tag.strip().lower()
-        if not normalized:
-            raise ValidationError("Etiqueta vacía no permitida")
-        if normalized in self._tags:
-            return
-        self._tags.append(normalized)
+    def add_tag(self, tag: str):
+        tag = tag.strip()
+        if not tag:
+            raise ValueError("La etiqueta no puede estar vacía")
+
+        tag = tag.lower()
+        if tag not in self._tags:
+            self._tags = self._tags + (tag,)
