@@ -1,25 +1,38 @@
-import pytest
-from app.models.entities import Ticket
+from app.domain.errors import DuplicateAssignmentError
 
-def test_normalizacion_y_duplicados():
-    t = Ticket(id="1", requester_id="u1")
-    t.add_tag(" Python ")
-    t.add_tag("PYTHON")
-    assert t.tags == ("python",)
+class TicketService:
+    def __init__(self, tickets_repo, users_repo, notifier):
+        self._tickets = tickets_repo
+        self._users = users_repo
+        self._notifier = notifier
 
-def test_rechazo_espacios_blancos():
-    t = Ticket(id="2", requester_id="u2")
-    with pytest.raises(ValueError):
-        t.add_tag("   ")
+    def require(self, ticket_id):
+        ticket = self._tickets.get(ticket_id)
+        if ticket is None:
+            raise Exception("Ticket inexistente")
+        return ticket
 
-def test_independencia_instancias():
-    t1 = Ticket(id="3", requester_id="u3")
-    t2 = Ticket(id="4", requester_id="u4")
-    t1.add_tag("python")
-    assert t1.tags == ("python",)
-    assert t2.tags == ()
+    def watchers(self, ticket_id):
+        ticket = self.require(ticket_id)
+        usuarios = []
 
-def test_reasignacion_publica_falla():
-    t = Ticket(id="5", requester_id="u5")
-    with pytest.raises(AttributeError):
-        t.tags = ("otro",)
+        requester = self._users.require(ticket.requester_id)
+        usuarios.append(requester)
+
+        if ticket.assigned_id is not None:
+            assigned = self._users.require(ticket.assigned_id)
+            if assigned.id != requester.id:
+                usuarios.append(assigned)
+
+        return usuarios
+
+    def assign(self, ticket_id, technician_id):
+        ticket = self.require(ticket_id)
+
+        # Validación: no asignar al mismo técnico
+        if ticket.assigned_id == technician_id:
+            raise DuplicateAssignmentError("El ticket ya está asignado a ese técnico")
+
+        # Asignar y notificar
+        ticket.assigned_id = technician_id
+        self._notifier.notify(ticket_id, technician_id)

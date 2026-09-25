@@ -1,6 +1,11 @@
 from dataclasses import dataclass, field
 
 @dataclass
+class User:
+    id: str
+    name: str
+
+@dataclass
 class Ticket:
     id: str
     requester_id: str
