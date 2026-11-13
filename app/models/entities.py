@@ -24,3 +24,16 @@ class Ticket:
         tag = tag.lower()
         if tag not in self._tags:
             self._tags = self._tags + (tag,)
+@dataclass
+class ArticuloConocimiento:
+    id: str
+    ticket_id: str
+    titulo: str
+    solucion: str
+
+    def __post_init__(self):
+        if not self.titulo.strip():
+            raise ValueError("El título no puede estar vacío")
+
+        if not self.solucion.strip():
+            raise ValueError("La solución no puede estar vacía")
